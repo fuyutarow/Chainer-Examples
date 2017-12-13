@@ -1,0 +1,8 @@
+*.jpg
+*.png
+*.csv
+*.zip
+*.DS_Store
+__pycache__/
+runs/
+
