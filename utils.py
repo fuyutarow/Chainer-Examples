@@ -10,11 +10,15 @@ from keras.utils import to_categorical
 
 from datetime import datetime
 from pytz import timezone
+
+
 def now(isabout=False):
     if isabout:
         return datetime.now(timezone('UTC')).isoformat().split('.')[0]
     else:
         return datetime.now(timezone('UTC')).isoformat()
+
+
 iso2utc = lambda iso: timezone('UTC').localize(pd.to_datetime(iso))
 
 RESIZE = (96, 96)
@@ -30,7 +34,7 @@ def shuffle_df(df):
     return df
 
 
-def df_fromdir(data_dir, columns=['fname', 'label']):
+def df_fromdir(data_dir, columns=['name', 'label']):
     fname_label = []
 
     labels = os.listdir(data_dir)
@@ -39,6 +43,7 @@ def df_fromdir(data_dir, columns=['fname', 'label']):
             d = (fname, label)
             fname_label.append(d)
     df = pd.DataFrame(fname_label, columns=columns)
+    df['path'] = format_dirname(data_dir) + '/' + df['label'] + '/' + df['name']
     return df
 
 
@@ -85,16 +90,10 @@ def data_fromdir(dir_name, label2id=None, resize=RESIZE):
     return x_data, y_data
 
 
-def data_fromdf(dataframe,
-                dataset_dir,
-                label2id=None,
-                resize=RESIZE,
-                rescale=1. / 255):
+def load_fromdf(dataframe, label2id=None, resize=RESIZE, rescale=1. / 255):
 
     df = dataframe
-    df['path'] = format_dirname(dataset_dir) + df['label'] + '/' + df['fname']
-    labels = set(os.listdir(dataset_dir))
-
+    labels = list(set(df['label']))
     l2i = label2id if label2id else {
         label: i
         for i, label in enumerate(labels)
@@ -103,17 +102,15 @@ def data_fromdf(dataframe,
     x_data = []
     y_data = []
     for idx, row in df.iterrows():
-        label = row['label']
+        y = row['label']
         f = row['path']
 
-        y = to_categorical(l2i[label], len(labels)).flatten()
-        label_dname = os.path.join(dataset_dir, label)
-        x = Image.open(f).resize(resize, Image.LANCZOS)
-        x = np.array(x) * rescale
+        x = arr_fromf(f)
         x_data.append(x)
         y_data.append(y)
-    x_data = np.array(x_data)  #.astype('f')
-    y_data = np.array(y_data)  #.astype('i')
+    x_data = np.array(x_data)
+    y_data = np.array(y_data)
+
     return x_data, y_data
 
 
@@ -157,8 +154,12 @@ def arr2img(arr):
     return Image.fromarray(np.uint8(arr))
 
 
-def img2arr(f, resize=RESIZE, rescale=1):
-    return np.asarray(Image.open(f).resize(resize, Image.LANCZOS)) * rescale
+def arr_fromf(f, resize=RESIZE, rescale=1):
+    resize = resize if type(resize) is tuple else (resize, resize)
+    img = Image.open(f).resize(resize, Image.LANCZOS)
+    if f.endswith('png') or f.endswith('PNG'):
+        img = img.convert('RGB')
+    return np.asarray(img) * rescale
 
 
 #
