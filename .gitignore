@@ -1,5 +1,7 @@
 *.jpg
+*.JPEG
 *.png
+*.gif
 *.csv
 *.zip
 *.DS_Store
